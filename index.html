@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Working Hours</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  /* iOS system colors (light mode) */
+  :root {
+    --ios-bg: #f2f2f7;              /* systemGroupedBackground */
+    --ios-surface: #ffffff;          /* secondarySystemGroupedBackground */
+    --ios-surface-2: #f9f9fb;        /* tertiarySystemGroupedBackground */
+    --ios-separator: rgba(60, 60, 67, 0.12); /* separator */
+    --ios-separator-opaque: #c6c6c8; /* opaqueSeparator */
+
+    --ios-label: #000000;            /* label */
+    --ios-secondary-label: rgba(60, 60, 67, 0.60);
+    --ios-tertiary-label: rgba(60, 60, 67, 0.30);
+
+    --ios-blue: #007aff;             /* systemBlue */
+    --ios-green: #34c759;            /* systemGreen */
+    --ios-orange: #ff9500;            /* systemOrange */
+    --ios-red: #ff3b30;              /* systemRed */
+    --ios-gray: #8e8e93;             /* systemGray */
+    --ios-gray-6: #f2f2f7;           /* systemGray6 */
+
+    --ios-fill: rgba(120, 120, 128, 0.12); /* tertiarySystemFill */
+    --ios-fill-quaternary: rgba(116, 116, 128, 0.08);
+
+    /* iOS font stack — SF Pro on Apple devices, falls back gracefully */
+    --font-sf: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+               "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, monospace;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--ios-bg);
+    color: var(--ios-label);
+    font-family: var(--font-sf);
+    font-size: 17px;
+    line-height: 1.29;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .container {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 20px 16px 32px;
+  }
+
+  /* iOS large title */
+  .nav {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 8px 4px 16px;
+  }
+  .nav h1 {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: 0.37px;
+    line-height: 1.05;
+    color: var(--ios-label);
+  }
+  .nav-action {
+    background: none;
+    border: 0;
+    color: var(--ios-blue);
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 400;
+    cursor: pointer;
+    padding: 4px 4px;
+    transition: opacity 0.15s ease;
+  }
+  .nav-action:active { opacity: 0.4; }
+
+  /* iOS grouped card (inset list style) */
+  .card {
+    background: var(--ios-surface);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  /* Hero panel — the timer */
+  .hero {
+    padding: 28px 20px 24px;
+    text-align: center;
+  }
+  .hero-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ios-secondary-label);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 12px;
+  }
+  .hero-digits {
+    font-family: var(--font-mono);
+    font-size: 56px;
+    font-weight: 600;
+    letter-spacing: -1.2px;
+    line-height: 1;
+    color: var(--ios-label);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Progress bar (iOS style: thin, rounded) */
+  .progress-section {
+    padding: 0 20px 24px;
+  }
+  .progress-track {
+    height: 6px;
+    background: var(--ios-fill);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--ios-blue);
+    border-radius: 99px;
+    transition: width 0.5s ease;
+  }
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--ios-secondary-label);
+    margin-top: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Stat tiles grid */
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-tile {
+    background: var(--ios-surface);
+    border-radius: 14px;
+    padding: 18px 16px;
+  }
+  .stat-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    font-size: 16px;
+  }
+  .stat-icon.blue { background: rgba(0, 122, 255, 0.12); color: var(--ios-blue); }
+  .stat-icon.green { background: rgba(52, 199, 89, 0.14); color: var(--ios-green); }
+  .stat-label {
+    font-size: 13px;
+    color: var(--ios-secondary-label);
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .stat-value {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--ios-label);
+    font-variant-numeric: tabular-nums;
+    font-family: var(--font-mono);
+  }
+
+  /* Settings — iOS inset grouped list */
+  .section-header {
+    padding: 0 16px 6px;
+    font-size: 13px;
+    color: var(--ios-secondary-label);
+    text-transform: uppercase;
+    letter-spacing: -0.08px;
+  }
+  .settings {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.35s ease, opacity 0.25s ease, margin 0.35s ease;
+    margin-top: 0;
+  }
+  .settings.open {
+    max-height: 800px;
+    opacity: 1;
+    margin-top: 4px;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    padding: 11px 16px;
+    min-height: 44px;
+    border-bottom: 0.5px solid var(--ios-separator);
+  }
+  .row:last-child { border-bottom: none; }
+  .row label {
+    flex: 0 0 auto;
+    font-size: 17px;
+    color: var(--ios-label);
+    margin-right: 12px;
+  }
+  .row .control {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .row input {
+    border: 0;
+    background: transparent;
+    text-align: right;
+    font-family: inherit;
+    font-size: 17px;
+    color: var(--ios-label);
+    width: 100%;
+    max-width: 180px;
+    padding: 0;
+    outline: none;
+    -moz-appearance: textfield;
+  }
+  .row input[type="number"]::-webkit-outer-spin-button,
+  .row input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .row input[type="time"] {
+    font-variant-numeric: tabular-nums;
+    color: var(--ios-blue);
+  }
+  .row input::placeholder { color: var(--ios-tertiary-label); }
+
+  /* Footnote — iOS style below grouped sections */
+  .footnote {
+    padding: 8px 16px 0;
+    font-size: 13px;
+    color: var(--ios-secondary-label);
+    line-height: 1.38;
+  }
+
+  /* States */
+  .state-weekend .hero-digits,
+  .state-before .hero-digits { color: var(--ios-secondary-label); }
+  .state-done .hero-digits { color: var(--ios-green); }
+  .state-done .progress-fill { background: var(--ios-green); }
+
+  /* Status badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: -0.08px;
+    margin-bottom: 10px;
+  }
+  .badge.working { background: rgba(0, 122, 255, 0.12); color: var(--ios-blue); }
+  .badge.done { background: rgba(52, 199, 89, 0.14); color: var(--ios-green); }
+  .badge.off { background: var(--ios-fill); color: var(--ios-secondary-label); }
+  .badge .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .badge.working .dot { animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  /* Save bar */
+  .actions {
+    display: flex;
+    gap: 10px;
+    padding: 0 0 4px;
+  }
+  .btn {
+    flex: 1;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 0;
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.4px;
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+  }
+  .btn:active { transform: scale(0.98); opacity: 0.85; }
+  .btn-primary { background: var(--ios-blue); color: #fff; }
+
+  /* Dark mode support — respects system preference */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ios-bg: #000000;
+      --ios-surface: #1c1c1e;
+      --ios-surface-2: #2c2c2e;
+      --ios-separator: rgba(84, 84, 88, 0.5);
+      --ios-label: #ffffff;
+      --ios-secondary-label: rgba(235, 235, 245, 0.60);
+      --ios-tertiary-label: rgba(235, 235, 245, 0.30);
+      --ios-fill: rgba(120, 120, 128, 0.24);
+    }
+  }
+
+  @media (max-width: 380px) {
+    .hero-digits { font-size: 46px; }
+    .nav h1 { font-size: 28px; }
+    .stat-value { font-size: 19px; }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="nav">
+      <h1>Today</h1>
+      <button class="nav-action" id="toggleSettings">Edit</button>
+    </div>
+
+    <!-- HERO TIMER -->
+    <div class="card" id="heroCard">
+      <div class="hero">
+        <div id="statusBadge" class="badge off">
+          <span class="dot"></span>
+          <span id="statusText">Not started</span>
+        </div>
+        <div class="hero-label" id="heroLabel">Time remaining</div>
+        <div class="hero-digits" id="digits">00:00:00</div>
+      </div>
+      <div class="progress-section">
+        <div class="progress-track">
+          <div class="progress-fill" id="fill"></div>
+        </div>
+        <div class="progress-meta">
+          <span id="startLabel">9:00 AM</span>
+          <span id="endLabel">6:00 PM</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats">
+      <div class="stat-tile">
+        <div class="stat-icon blue">%</div>
+        <div class="stat-label">Day progress</div>
+        <div class="stat-value" id="percent">0%</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-icon green">$</div>
+        <div class="stat-label">Earned today</div>
+        <div class="stat-value" id="earned">$0.00</div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="settings" id="settings">
+      <div class="section-header">Working Hours</div>
+      <div class="card">
+        <div class="row">
+          <label for="startTime">Starts</label>
+          <div class="control">
+            <input type="time" id="startTime" value="09:00" />
+          </div>
+        </div>
+        <div class="row">
+          <label for="endTime">Ends</label>
+          <div class="control">
+            <input type="time" id="endTime" value="18:00" />
+          </div>
+        </div>
+      </div>
+
+      <div class="section-header">Compensation</div>
+      <div class="card">
+        <div class="row">
+          <label for="currency">Currency</label>
+          <div class="control">
+            <input type="text" id="currency" maxlength="4" value="$" placeholder="$" />
+          </div>
+        </div>
+        <div class="row">
+          <label for="salary">Monthly salary</label>
+          <div class="control">
+            <input type="number" id="salary" min="0" step="any" placeholder="0" inputmode="decimal" />
+          </div>
+        </div>
+      </div>
+      <div class="footnote" id="footnote">Working days exclude weekends in the current month.</div>
+
+      <div style="height: 16px;"></div>
+      <div class="actions">
+        <button class="btn btn-primary" id="saveBtn">Done</button>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+(() => {
+  const KEY = 'work-countdown-config-v1';
+  const UI_KEY = 'work-countdown-ui-v1';
+  const defaults = { start: '09:00', end: '18:00', salary: 0, currency: '$' };
+
+  function loadConfig() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      return raw ? { ...defaults, ...JSON.parse(raw) } : { ...defaults };
+    } catch (e) { return { ...defaults }; }
+  }
+  function saveConfig(c) {
+    try { localStorage.setItem(KEY, JSON.stringify(c)); } catch (e) {}
+  }
+  function loadUIState() {
+    try {
+      const raw = localStorage.getItem(UI_KEY);
+      return raw ? JSON.parse(raw) : { settingsOpen: null };
+    } catch (e) { return { settingsOpen: null }; }
+  }
+  function saveUIState(s) {
+    try { localStorage.setItem(UI_KEY, JSON.stringify(s)); } catch (e) {}
+  }
+
+  let config = loadConfig();
+  let ui = loadUIState();
+
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    startInput: $('startTime'),
+    endInput: $('endTime'),
+    salaryInput: $('salary'),
+    currencyInput: $('currency'),
+    settings: $('settings'),
+    toggleBtn: $('toggleSettings'),
+    saveBtn: $('saveBtn'),
+    digits: $('digits'),
+    heroLabel: $('heroLabel'),
+    fill: $('fill'),
+    percent: $('percent'),
+    earned: $('earned'),
+    footnote: $('footnote'),
+    heroCard: $('heroCard'),
+    statusBadge: $('statusBadge'),
+    statusText: $('statusText'),
+    startLabel: $('startLabel'),
+    endLabel: $('endLabel'),
+  };
+
+  els.startInput.value = config.start;
+  els.endInput.value = config.end;
+  els.salaryInput.value = config.salary || '';
+  els.currencyInput.value = config.currency || '$';
+
+  // Initial open/closed: respect stored preference; default open only if salary not set
+  const shouldOpen = ui.settingsOpen !== null ? ui.settingsOpen : !config.salary;
+  if (shouldOpen) {
+    els.settings.classList.add('open');
+    els.toggleBtn.textContent = 'Done';
+  }
+
+  els.toggleBtn.addEventListener('click', () => {
+    const isOpen = els.settings.classList.toggle('open');
+    els.toggleBtn.textContent = isOpen ? 'Done' : 'Edit';
+    saveUIState({ settingsOpen: isOpen });
+  });
+
+  // Live updates — apply changes as the user types/picks
+  function applyInputs() {
+    config = {
+      start: els.startInput.value || '09:00',
+      end: els.endInput.value || '18:00',
+      salary: parseFloat(els.salaryInput.value) || 0,
+      currency: els.currencyInput.value || '$'
+    };
+    saveConfig(config);
+    update();
+  }
+
+  els.startInput.addEventListener('input', applyInputs);
+  els.startInput.addEventListener('change', applyInputs);
+  els.endInput.addEventListener('input', applyInputs);
+  els.endInput.addEventListener('change', applyInputs);
+  els.salaryInput.addEventListener('input', applyInputs);
+  els.currencyInput.addEventListener('input', applyInputs);
+
+  // Save button now just collapses the panel (changes are already live)
+  els.saveBtn.addEventListener('click', () => {
+    applyInputs();
+    els.settings.classList.remove('open');
+    els.toggleBtn.textContent = 'Edit';
+    saveUIState({ settingsOpen: false });
+  });
+
+  function parseTimeToMinutes(t) {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  }
+  function todayAt(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    return d;
+  }
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function fmtDuration(ms) {
+    if (ms < 0) ms = 0;
+    const total = Math.floor(ms / 1000);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+  function fmtMoney(n, sym) {
+    const s = (n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return `${sym}${s}`;
+  }
+  function fmt12Hour(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${pad(m)} ${period}`;
+  }
+  function workingDaysThisMonth(date = new Date()) {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    let count = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dow = new Date(year, month, d).getDay();
+      if (dow !== 0 && dow !== 6) count++;
+    }
+    return count;
+  }
+
+  function setStatus(state, text) {
+    els.heroCard.parentElement.classList.remove('state-weekend', 'state-before', 'state-done', 'state-working');
+    els.heroCard.classList.remove('state-weekend', 'state-before', 'state-done', 'state-working');
+    if (state) els.heroCard.classList.add('state-' + state);
+
+    els.statusBadge.classList.remove('working', 'done', 'off');
+    if (state === 'done') els.statusBadge.classList.add('done');
+    else if (state === 'working') els.statusBadge.classList.add('working');
+    else els.statusBadge.classList.add('off');
+    els.statusText.textContent = text;
+  }
+
+  function update() {
+    const now = new Date();
+    const startMin = parseTimeToMinutes(config.start);
+    const endMin = parseTimeToMinutes(config.end);
+
+    let start = todayAt(config.start);
+    let end = todayAt(config.end);
+    if (endMin <= startMin) end = new Date(end.getTime() + 86400000);
+
+    const totalMs = end - start;
+    const dailyHours = totalMs / 3600000;
+
+    const workDays = workingDaysThisMonth(now);
+    const dailySalary = workDays > 0 ? (config.salary / workDays) : 0;
+
+    els.startLabel.textContent = fmt12Hour(config.start);
+    els.endLabel.textContent = fmt12Hour(config.end);
+
+    const dow = now.getDay();
+    const isWeekend = (dow === 0 || dow === 6);
+
+    if (isWeekend) {
+      setStatus('weekend', 'Weekend');
+      els.digits.textContent = '—';
+      els.heroLabel.textContent = 'Day off';
+      els.fill.style.width = '0%';
+      els.percent.textContent = '0%';
+      els.earned.textContent = fmtMoney(0, config.currency);
+    } else if (now < start) {
+      setStatus(null, 'Not started');
+      els.digits.textContent = fmtDuration(start - now);
+      els.heroLabel.textContent = 'Until work starts';
+      els.fill.style.width = '0%';
+      els.percent.textContent = '0%';
+      els.earned.textContent = fmtMoney(0, config.currency);
+    } else if (now >= end) {
+      setStatus('done', 'Done for today');
+      els.digits.textContent = '00:00:00';
+      els.heroLabel.textContent = 'Workday complete';
+      els.fill.style.width = '100%';
+      els.percent.textContent = '100%';
+      els.earned.textContent = fmtMoney(dailySalary, config.currency);
+    } else {
+      setStatus('working', 'Working');
+      const elapsedMs = now - start;
+      const remainingMs = end - now;
+      const pct = (elapsedMs / totalMs) * 100;
+      const earned = (elapsedMs / totalMs) * dailySalary;
+      els.digits.textContent = fmtDuration(remainingMs);
+      els.heroLabel.textContent = 'Time remaining';
+      els.fill.style.width = pct.toFixed(2) + '%';
+      els.percent.textContent = pct.toFixed(1) + '%';
+      els.earned.textContent = fmtMoney(earned, config.currency);
+    }
+
+    els.footnote.textContent = `Shift: ${dailyHours.toFixed(2)}h · ${workDays} working days this month · Daily rate ${fmtMoney(dailySalary, config.currency)}`;
+  }
+
+  update();
+  setInterval(update, 1000);
+})();
+</script>
+</body>
+</html>
