@@ -299,6 +299,35 @@
   .btn:active { transform: scale(0.98); opacity: 0.85; }
   .btn-primary { background: var(--ios-blue); color: #fff; }
 
+  /* URL box and copy button */
+  .url-box {
+    background: var(--ios-fill);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ios-secondary-label);
+    word-break: break-all;
+    line-height: 1.45;
+    user-select: all;
+    -webkit-user-select: all;
+  }
+  .copy-btn {
+    background: var(--ios-blue);
+    color: #fff;
+    border: 0;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 5px 14px;
+    border-radius: 99px;
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+    letter-spacing: -0.2px;
+  }
+  .copy-btn:active { transform: scale(0.95); opacity: 0.85; }
+  .copy-btn.copied { background: var(--ios-green); }
+
   /* Dark mode support — respects system preference */
   @media (prefers-color-scheme: dark) {
     :root {
@@ -398,6 +427,18 @@
       </div>
       <div class="footnote" id="footnote">Working days exclude weekends in the current month.</div>
 
+      <div class="section-header" style="margin-top: 24px;">Notion Embed</div>
+      <div class="card">
+        <div class="row" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 14px 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <span style="font-size: 15px; color: var(--ios-label);">Embed URL</span>
+            <button class="copy-btn" id="copyBtn">Copy</button>
+          </div>
+          <div class="url-box" id="urlBox"></div>
+        </div>
+      </div>
+      <div class="footnote">Paste this URL into a Notion <code style="background:var(--ios-fill);padding:1px 5px;border-radius:4px;font-size:12px;">/embed</code> block. Your settings are saved in the URL itself, so they persist across reloads.</div>
+
       <div style="height: 16px;"></div>
       <div class="actions">
         <button class="btn btn-primary" id="saveBtn">Done</button>
@@ -412,15 +453,46 @@
   const UI_KEY = 'work-countdown-ui-v1';
   const defaults = { start: '09:00', end: '18:00', salary: 0, currency: '$' };
 
+  // Read config from URL query parameters (the Notion-persistence trick)
+  function loadFromURL() {
+    const p = new URLSearchParams(window.location.search);
+    const out = {};
+    if (p.has('start')) out.start = p.get('start');
+    if (p.has('end')) out.end = p.get('end');
+    if (p.has('salary')) {
+      const n = parseFloat(p.get('salary'));
+      if (!isNaN(n)) out.salary = n;
+    }
+    if (p.has('currency')) out.currency = p.get('currency');
+    return out;
+  }
+
   function loadConfig() {
+    // Priority: URL params > localStorage > defaults
+    const urlCfg = loadFromURL();
+    let stored = {};
     try {
       const raw = localStorage.getItem(KEY);
-      return raw ? { ...defaults, ...JSON.parse(raw) } : { ...defaults };
-    } catch (e) { return { ...defaults }; }
+      if (raw) stored = JSON.parse(raw);
+    } catch (e) {}
+    return { ...defaults, ...stored, ...urlCfg };
   }
+
   function saveConfig(c) {
     try { localStorage.setItem(KEY, JSON.stringify(c)); } catch (e) {}
   }
+
+  function buildEmbedURL(c) {
+    const base = window.location.origin + window.location.pathname;
+    const p = new URLSearchParams({
+      start: c.start,
+      end: c.end,
+      salary: String(c.salary || 0),
+      currency: c.currency || '$'
+    });
+    return `${base}?${p.toString()}`;
+  }
+
   function loadUIState() {
     try {
       const raw = localStorage.getItem(UI_KEY);
@@ -443,6 +515,8 @@
     settings: $('settings'),
     toggleBtn: $('toggleSettings'),
     saveBtn: $('saveBtn'),
+    copyBtn: $('copyBtn'),
+    urlBox: $('urlBox'),
     digits: $('digits'),
     heroLabel: $('heroLabel'),
     fill: $('fill'),
@@ -483,7 +557,12 @@
       currency: els.currencyInput.value || '$'
     };
     saveConfig(config);
+    refreshEmbedURL();
     update();
+  }
+
+  function refreshEmbedURL() {
+    if (els.urlBox) els.urlBox.textContent = buildEmbedURL(config);
   }
 
   els.startInput.addEventListener('input', applyInputs);
@@ -493,6 +572,34 @@
   els.salaryInput.addEventListener('input', applyInputs);
   els.currencyInput.addEventListener('input', applyInputs);
 
+  // Copy embed URL to clipboard
+  els.copyBtn.addEventListener('click', async () => {
+    const url = buildEmbedURL(config);
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(url);
+      ok = true;
+    } catch (e) {
+      // Fallback: select the URL box for manual copy
+      try {
+        const range = document.createRange();
+        range.selectNodeContents(els.urlBox);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        ok = document.execCommand('copy');
+      } catch (e2) { ok = false; }
+    }
+    if (ok) {
+      els.copyBtn.textContent = 'Copied';
+      els.copyBtn.classList.add('copied');
+      setTimeout(() => {
+        els.copyBtn.textContent = 'Copy';
+        els.copyBtn.classList.remove('copied');
+      }, 1600);
+    }
+  });
+
   // Save button now just collapses the panel (changes are already live)
   els.saveBtn.addEventListener('click', () => {
     applyInputs();
@@ -500,6 +607,9 @@
     els.toggleBtn.textContent = 'Edit';
     saveUIState({ settingsOpen: false });
   });
+
+  // Initial URL render
+  refreshEmbedURL();
 
   function parseTimeToMinutes(t) {
     const [h, m] = t.split(':').map(Number);
