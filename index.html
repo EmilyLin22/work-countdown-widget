@@ -562,7 +562,19 @@
   }
 
   function refreshEmbedURL() {
-    if (els.urlBox) els.urlBox.textContent = buildEmbedURL(config);
+    const url = buildEmbedURL(config);
+    if (els.urlBox) els.urlBox.textContent = url;
+    // Update the browser's address bar so it always reflects current settings.
+    // Use replaceState (not pushState) so it doesn't pollute browser history.
+    try {
+      const qs = '?' + new URLSearchParams({
+        start: config.start,
+        end: config.end,
+        salary: String(config.salary || 0),
+        currency: config.currency || '$'
+      }).toString();
+      window.history.replaceState(null, '', qs);
+    } catch (e) { /* sandboxed iframes may block this; harmless */ }
   }
 
   els.startInput.addEventListener('input', applyInputs);
